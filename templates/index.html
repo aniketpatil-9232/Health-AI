@@ -1,0 +1,172 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FetalAI: Predict Fetal Health</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-purple-600 text-white py-4 shadow-md">
+        <div class="container mx-auto px-4">
+            <h1 class="text-2xl font-bold">FetalAI: Predict Fetal Health</h1>
+            <p class="mt-1 text-sm">Enter the fetal health metrics below to predict the health status (Normal, Suspect, or Pathological).</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <form action="/predict" method="POST" class="space-y-6 bg-white p-6 rounded-lg shadow-md">
+            <section>
+                <h2 class="text-lg font-semibold text-purple-700 mb-4">Fetal Heart Rate Metrics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="baseline_value" class="block text-sm font-medium text-gray-700">Baseline Value (bpm):</label>
+                        <input type="number" id="baseline_value" name="baseline_value" value="120" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="accelerations" class="block text-sm font-medium text-gray-700">Accelerations:</label>
+                        <input type="number" step="0.001" id="accelerations" name="accelerations" value="0.005" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="fetal_movement" class="block text-sm font-medium text-gray-700">Fetal Movement:</label>
+                        <input type="number" step="0.001" id="fetal_movement" name="fetal_movement" value="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="uterine_contractions" class="block text-sm font-medium text-gray-700">Uterine Contractions:</label>
+                        <input type="number" step="0.001" id="uterine_contractions" name="uterine_contractions" value="0.004" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="light_decelerations" class="block text-sm font-medium text-gray-700">Light Decelerations:</label>
+                        <input type="number" step="0.001" id="light_decelerations" name="light_decelerations" value="0.003" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="severe_decelerations" class="block text-sm font-medium text-gray-700">Severe Decelerations:</label>
+                        <input type="number" step="0.001" id="severe_decelerations" name="severe_decelerations" value="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="prolonged_decelerations" class="block text-sm font-medium text-gray-700">Prolonged Decelerations:</label>
+                        <input type="number" step="0.001" id="prolonged_decelerations" name="prolonged_decelerations" value="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-semibold text-purple-700 mb-4">Variability Metrics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="abnormal_short_term_variability" class="block text-sm font-medium text-gray-700">Abnormal Short-Term Variability:</label>
+                        <input type="number" id="abnormal_short_term_variability" name="abnormal_short_term_variability" value="30" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="mean_short_term_variability" class="block text-sm font-medium text-gray-700">Mean Value of Short-Term Variability:</label>
+                        <input type="number" step="0.1" id="mean_short_term_variability" name="mean_short_term_variability" value="1.2" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="percentage_abnormal_long_term_variability" class="block text-sm font-medium text-gray-700">Percentage of Time with Abnormal Long-Term Variability:</label>
+                        <input type="number" id="percentage_abnormal_long_term_variability" name="percentage_abnormal_long_term_variability" value="10" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="mean_long_term_variability" class="block text-sm font-medium text-gray-700">Mean Value of Long-Term Variability:</label>
+                        <input type="number" step="0.1" id="mean_long_term_variability" name="mean_long_term_variability" value="8" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-lg font-semibold text-purple-700 mb-4">Histogram Metrics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="histogram_width" class="block text-sm font-medium text-gray-700">Histogram Width:</label>
+                        <input type="number" id="histogram_width" name="histogram_width" value="70" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_min" class="block text-sm font-medium text-gray-700">Histogram Min:</label>
+                        <input type="number" id="histogram_min" name="histogram_min" value="60" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_max" class="block text-sm font-medium text-gray-700">Histogram Max:</label>
+                        <input type="number" id="histogram_max" name="histogram_max" value="130" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_peaks" class="block text-sm font-medium text-gray-700">Histogram Number of Peaks:</label>
+                        <input type="number" id="histogram_peaks" name="histogram_peaks" value="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_zeroes" class="block text-sm font-medium text-gray-700">Histogram Number of Zeroes:</label>
+                        <input type="number" id="histogram_zeroes" name="histogram_zeroes" value="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_mode" class="block text-sm font-medium text-gray-700">Histogram Mode:</label>
+                        <input type="number" id="histogram_mode" name="histogram_mode" value="120" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_mean" class="block text-sm font-medium text-gray-700">Histogram Mean:</label>
+                        <input type="number" id="histogram_mean" name="histogram_mean" value="118" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_median" class="block text-sm font-medium text-gray-700">Histogram Median:</label>
+                        <input type="number" id="histogram_median" name="histogram_median" value="119" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_variance" class="block text-sm font-medium text-gray-700">Histogram Variance:</label>
+                        <input type="number" id="histogram_variance" name="histogram_variance" value="20" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="histogram_tendency" class="block text-sm font-medium text-gray-700">Histogram Tendency:</label>
+                        <input type="number" id="histogram_tendency" name="histogram_tendency" value="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-500 focus:ring-opacity-50">
+                    </div>
+                </div>
+            </section>
+
+            <div>
+                <button type="submit" class="w-full md:w-auto px-6 py-2 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">Predict</button>
+            </div>
+        </form>
+    </main>
+
+    <footer class="bg-purple-600 text-white py-4">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 FetalAI. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
