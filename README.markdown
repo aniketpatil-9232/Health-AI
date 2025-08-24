@@ -1,6 +1,6 @@
-# Fetal Health Prediction Project
+# Health AI Prediction Project
 
-Welcome to the Fetal Health Prediction Project. This web-based application leverages machine learning to predict fetal health status (Normal, Suspect, or Pathological) based on fetal heart rate parameters. this project offers a user-friendly interface with an orange theme and robust predictive capabilities.
+Welcome to the Health Prediction Project. This web-based application leverages machine learning to predict fetal health status (Normal, Suspect, or Pathological) based on fetal heart rate parameters. this project offers a user-friendly interface with an orange theme and robust predictive capabilities.
 
 ## Project Overview
 
@@ -39,7 +39,7 @@ fetal-health/
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/hriturajnarvekar27/FetalAl.git
+   git clone https://github.com/aniketpatil-9232/Health-AI
    cd fetal-health
    ```
 
